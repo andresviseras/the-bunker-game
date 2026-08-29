@@ -1,17 +1,19 @@
 import json
+import logging
+from typing import Dict, List, Optional
 from google import genai
 from google.genai import types
 
-# ELIMINAMOS la importación global de settings y del cliente
-# from app.core.config import settings
-# client = genai.Client(api_key=settings.GEMINI_API_KEY) ...
+# Configure logging for production-level error tracking
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-async def generate_and_distribute_roles(api_key: str, players: list[str], current_scenario: str, language: str) -> dict:
+async def generate_and_distribute_roles(api_key: str, players: List[str], current_scenario: str, language: str) -> Optional[Dict]:
     """
-    Se comunica con Gemini para generar los roles de forma asíncrona usando la API key de la sala.
+    Communicates with Gemini to asynchronously generate roles using the room's API key.
     """
     if not api_key:
-        print("Error: No API key provided for role generation.")
+        logger.error("No API key provided for role generation.")
         return None
         
     client = genai.Client(api_key=api_key)
@@ -78,20 +80,21 @@ async def generate_and_distribute_roles(api_key: str, players: list[str], curren
         return json.loads(raw_json)
         
     except json.JSONDecodeError as e:
-        print("\n--- ERROR DE SINTAXIS JSON EN LA IA ---")
-        print(f"Detalle del error: {e}")
-        print(f"Texto crudo devuelto:\n{raw_json}")
-        print("---------------------------------------\n")
+        logger.error("\n--- JSON SYNTAX ERROR FROM AI ---")
+        logger.error(f"Error details: {e}")
+        logger.error(f"Raw text returned:\n{raw_json}")
+        logger.error("---------------------------------------\n")
         return None
     except Exception as e:
-        print(f"AI Error general: {e}")
+        logger.error(f"General AI Error: {e}")
         return None
 
-async def generate_final_verdict(api_key: str, game_language: str, current_scenario: str, player_roles: dict, ideal_survivors: list, chosen_survivors: list) -> dict:
+async def generate_final_verdict(api_key: str, game_language: str, current_scenario: str, player_roles: dict, ideal_survivors: list, chosen_survivors: list) -> Optional[Dict]:
     """
-    Genera el veredicto final usando la API key de la sala.
+    Generates the final verdict using the room's API key.
     """
     if not api_key:
+        logger.error("No API key provided for verdict generation.")
         return None
         
     client = genai.Client(api_key=api_key)
@@ -136,5 +139,5 @@ async def generate_final_verdict(api_key: str, game_language: str, current_scena
         return json.loads(response.text)
         
     except Exception as e:
-        print(f"AI Error (Verdict): {e}")
+        logger.error(f"AI Error (Verdict): {e}")
         return None

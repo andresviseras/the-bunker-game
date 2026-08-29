@@ -1,14 +1,14 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    # Render asigna dinámicamente un puerto a través de esta variable.
-    # Le damos 8000 por defecto para que funcione en tu máquina local.
+    # Render assigns a port dynamically through this variable.
+    # Default is 8000 for local development.
     PORT: int = 8000
 
     class Config:
         env_file = ".env"
-        # Ignora variables extra en el entorno que no hayamos definido aquí
+        # Ignore extra environment variables not defined here
         extra = "ignore" 
 
-# Instanciamos la configuración para importarla desde cualquier parte
+# Instantiate settings to import across the app
 settings = Settings()
