@@ -8,6 +8,8 @@ The Bunker of Chaps is a real-time, asynchronous multiplayer social deduction ga
 
 *(Note: Requires at least 3 players in the same room and a valid Google Gemini API Key to play).*
 
+<img src="assets/gameplay.jpeg" alt="The Bunker of Chaos Gameplay" width="700">
+
 ## 🚀 Key Features
 
 * **Real-Time State Synchronization:** Built on a robust WebSocket architecture that handles concurrent state broadcasting, private role distributions, and resilient client auto-reconnection without state loss.
