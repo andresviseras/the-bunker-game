@@ -70,14 +70,12 @@ async def generate_and_distribute_roles(players: list[str], current_scenario: st
         
         raw_json = response.text
         
-        # Limpieza de seguridad por si la IA escupe backticks de Markdown
         if raw_json.startswith("```json"):
             raw_json = raw_json.replace("```json", "").replace("```", "").strip()
             
         return json.loads(raw_json)
         
     except json.JSONDecodeError as e:
-        # Si la IA rompe el JSON, no crasheamos. Imprimimos el error para debugear.
         print("\n--- ERROR DE SINTAXIS JSON EN LA IA ---")
         print(f"Detalle del error: {e}")
         print(f"Texto crudo devuelto:\n{raw_json}")
@@ -89,35 +87,39 @@ async def generate_and_distribute_roles(players: list[str], current_scenario: st
 
 async def generate_final_verdict(game_language: str, current_scenario: str, player_roles: dict, ideal_survivors: list, chosen_survivors: list) -> dict:
     """
-    Genera el veredicto final comparando la decisión de los jugadores con la de la IA.
+    Genera el veredicto final comparando la decisión de los jugadores con la de la IA, con un tono analítico e impersonal.
     """
     if not client:
         return None
 
     prompt = f"""
     LANGUAGE REQUIREMENT: You MUST generate all output entirely in this language: {game_language}.
-    You are the Game Master. 
     Scenario: {current_scenario}
     Players and Roles: {json.dumps(player_roles, ensure_ascii=False)}
-    Your Original Ideal Team: {ideal_survivors}
-    The players ignored your logic. They voted and forced THIS team into the bunker: {chosen_survivors}.
+    The Ideal Logical Team: {ideal_survivors}
+    The Host's Chosen Team: {chosen_survivors}.
     
-    Write a brutally honest, dramatic narrative. 
-    1. Explain exactly what happens to the players' chosen team inside the bunker. Detail how their specific flaws ruin their survival. (Or if they somehow survive, make it clear it is a miserable existence).
-    2. Arrogantly remind them why YOUR ideal team ({ideal_survivors}) was the logically superior choice based on their specific skills and flaws.
+    Write a brutally honest, analytical, and completely objective narrative. 
     
-     CRITICAL FORMATTING RULE: 
-        - All text values inside the JSON MUST be written in a single continuous line. 
-        - STRICTLY FORBIDDEN: Do NOT use unescaped double quotes, and do NOT use physical line breaks or newline characters (\\n) inside the text strings. Keep every description as a single paragraph.
+    CRITICAL TONE RULES: 
+    - DO NOT use first-person pronouns (I, me, my, "as an AI", "I believe", etc.). 
+    - Keep it strictly impersonal, clinical, and objective (e.g., "El análisis de los perfiles indica que...", "La combinación seleccionada resulta en...").
+    
+    1. Objective analysis of the Host's team: Detail exactly what happens to the chosen team inside the bunker. Explicitly mention their "toxic synergies" (how one player's flaw ruins another's work) or "incomplete synergies" (critical survival needs left unmet).
+    2. Justification of the Ideal Team: Provide a cold, logical explanation of why the Ideal Logical Team ({ideal_survivors}) would have been a mathematically and practically superior choice based on their complementary skills and manageable flaws.
+    
+    CRITICAL FORMATTING RULE: 
+    - All text values inside the JSON MUST be written in a single continuous line. 
+    - STRICTLY FORBIDDEN: Do NOT use unescaped double quotes, and do NOT use physical line breaks or newline characters (\\n) inside the text strings. Keep every description as a single paragraph.
+    
     Return ONLY a valid JSON with this exact structure, with no markdown formatting or extra text:
     {{
-      "player_outcome": "Narrative of what happens to the voted team...",
-      "ai_smackdown": "Your arrogant explanation of why your original team was better..."
+      "player_outcome": "Objective analysis of what happens to the Host's team, highlighting toxic or incomplete synergies...",
+      "ai_smackdown": "Objective justification of why the Ideal Team was logically superior..."
     }}
     """
     
     try:
-        # Aplicamos también la corrección aquí
         chat = client.aio.chats.create(
             model='gemini-3.5-flash',
             config=types.GenerateContentConfig(
