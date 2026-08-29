@@ -1,9 +1,6 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    # La API Key es obligatoria. Si no está en el .env o en Render, la app no arranca.
-    GEMINI_API_KEY: str
-    
     # Render asigna dinámicamente un puerto a través de esta variable.
     # Le damos 8000 por defecto para que funcione en tu máquina local.
     PORT: int = 8000
