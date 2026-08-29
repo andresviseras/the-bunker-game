@@ -3,7 +3,7 @@ venv/
 env/
 .venv/
 
-# Variables de Entorno (¡Crítico!)
+# Variables de Entorno
 .env
 
 # Archivos compilados de Python
