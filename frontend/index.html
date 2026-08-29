@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>El Búnker del Caos</title>
+    <title>The Chaos Bunker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .fade-in { animation: fadeIn 0.4s ease-in-out; }
@@ -14,159 +14,180 @@
 
     <div class="w-full max-w-md">
 
-        <!-- PANTALLA 1: LOGIN -->
+        <!-- SCREEN 1: LOGIN -->
         <div id="screen-login" class="fade-in bg-gray-900 rounded-3xl p-8 shadow-[0_0_20px_rgba(239,68,68,0.3)] border border-red-900 text-center">
             <div class="flex justify-center mb-6">
                 <select id="lang-select" onchange="changeLanguage()" class="bg-gray-800 text-gray-300 border border-gray-700 rounded-lg p-2 text-sm focus:outline-none focus:border-red-500 font-bold">
-                    <option value="es">🇪🇸 Español</option>
                     <option value="en">🇺🇸 English</option>
+                    <option value="es">🇪🇸 Español</option>
                 </select>
             </div>
-            <h1 id="ui-title" class="text-3xl font-black text-red-500 mb-2 tracking-wider">☢️ EL BÚNKER</h1>
-            <p id="ui-subtitle" class="text-gray-400 mb-8 text-sm">Edición Secretos y Traiciones</p>
+            <h1 id="ui-title" class="text-3xl font-black text-red-500 mb-2 tracking-wider">☢️ THE BUNKER</h1>
+            <p id="ui-subtitle" class="text-gray-400 mb-8 text-sm">Secrets & Betrayals Edition</p>
+            
             <div class="space-y-4">
-                <input type="text" id="playerName" placeholder="Tu nombre..." class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all text-center text-lg font-bold">
-                <input type="text" id="roomCode" placeholder="Código de Sala" class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all text-center tracking-widest uppercase font-bold">
-                <button id="ui-btn-join" onclick="joinRoom()" class="w-full mt-4 bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.6)] transition-all text-lg transform hover:scale-105 active:scale-95">
-                    ENTRAR AL BÚNKER
+                <input type="text" id="playerName" placeholder="Your name..." class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all text-center text-lg font-bold">
+                <input type="text" id="roomCode" placeholder="Room Code" class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-all text-center tracking-widest uppercase font-bold">
+                
+                <!-- Botón JOIN ahora en ROJO y grande -->
+                <button id="ui-btn-join" onclick="joinRoom()" class="w-full mt-4 bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.6)] transition-all text-lg transform hover:scale-105 active:scale-95 border border-red-500">
+                    JOIN EXISTING ROOM
                 </button>
+
+                <div class="relative flex py-5 items-center">
+                    <div class="flex-grow border-t border-gray-700"></div>
+                    <span id="ui-or-create" class="flex-shrink-0 mx-4 text-gray-500 text-sm font-bold">OR CREATE A NEW ONE</span>
+                    <div class="flex-grow border-t border-gray-700"></div>
+                </div>
+
+                <!-- Contenedor FLEX para Input + Botón CREATE -->
+                <div class="flex space-x-3">
+                    <input type="password" id="apiKey" placeholder="Your Gemini API Key..." class="flex-grow w-2/3 bg-gray-800 border border-yellow-700 text-yellow-500 rounded-xl px-4 py-3 focus:outline-none focus:border-yellow-500 transition-all text-center text-sm font-mono">
+                    
+                    <button id="ui-btn-create" onclick="createRoom()" class="w-1/3 flex-shrink-0 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-xl shadow-lg transition-all text-xs border border-gray-600">
+                        CREATE NEW ROOM
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- PANTALLA 2: LOBBY -->
+        <!-- SCREEN 2: LOBBY -->
         <div id="screen-lobby" class="hidden fade-in bg-gray-900 rounded-3xl p-8 shadow-[0_0_20px_rgba(59,130,246,0.3)] border border-blue-900 text-center">
-            <h2 class="text-2xl font-bold text-blue-400 mb-4"><span id="ui-room-label">Sala</span>: <span id="displayRoom" class="text-white">---</span></h2>
+            <h2 class="text-2xl font-bold text-blue-400 mb-4"><span id="ui-room-label">Room</span>: <span id="displayRoom" class="text-white">---</span></h2>
             <p class="text-lg text-gray-200 mb-6 uppercase tracking-widest font-black" id="displayMyNameLobby"></p>
             <div class="animate-pulse bg-gray-800 rounded-xl p-6 mb-6">
-                <p id="lobbyStatus" class="text-gray-300">Conectado. Esperando jugadores...</p>
-                <p class="text-green-400 font-bold mt-4"><span id="ui-players-label">Jugadores activos</span>: <span id="playersList" class="text-white"></span></p>
+                <p id="lobbyStatus" class="text-gray-300">Connected. Waiting for players...</p>
+                <p class="text-green-400 font-bold mt-4"><span id="ui-players-label">Active Players</span>: <span id="playersList" class="text-white"></span></p>
             </div>
              <div id="host-controls" class="hidden mb-6 text-left bg-gray-800 p-4 rounded-xl border border-blue-900 shadow-inner">
-                <label id="ui-crisis-label" class="block text-blue-400 font-bold text-xs uppercase tracking-wider mb-2">🌍 Selecciona la Crisis:</label>
+                <label id="ui-crisis-label" class="block text-blue-400 font-bold text-xs uppercase tracking-wider mb-2">🌍 Select the Crisis:</label>
                 <select id="scenario-select" class="w-full bg-gray-900 text-gray-200 border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-blue-500 font-bold text-sm">
-                    <!-- Dinámico -->
+                    <!-- Dynamic scenarios -->
                 </select>
             </div>
             <button id="btn-start" onclick="startGame()" class="hidden w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.6)] transition-all text-lg transform hover:scale-105 active:scale-95">
-                ¡EMPEZAR PARTIDA!
+                START GAME!
             </button>
             <p id="text-waiting-host" class="hidden text-gray-400 text-sm font-bold animate-pulse">
-                Esperando a que el anfitrión inicie la partida...
+                Waiting for the host to start the game...
             </p>
+            <button id="ui-btn-leave" onclick="leaveRoom()" class="w-full mt-4 bg-transparent border border-red-800 text-red-500 hover:bg-red-900 hover:text-white font-bold py-2 rounded-xl transition-all text-sm">
+                LEAVE ROOM
+            </button>
         </div>
 
-        <!-- PANTALLA 3: TU ROL Y SELECCIÓN DEL HOST -->
+        <!-- SCREEN 3: YOUR ROLE AND HOST SELECTION -->
         <div id="screen-role" class="hidden fade-in bg-gray-900 rounded-3xl p-6 shadow-[0_0_20px_rgba(34,197,94,0.3)] border border-green-700">
-            <h2 id="ui-confidential" class="text-2xl font-black text-center text-green-400 mb-6 tracking-wide">CONFIDENCIAL</h2>
+            <h2 id="ui-confidential" class="text-2xl font-black text-center text-green-400 mb-6 tracking-wide">CONFIDENTIAL</h2>
             <p class="text-center text-gray-200 text-lg mb-6 uppercase tracking-widest font-black" id="displayMyNameRole"></p>
 
             <div class="bg-gray-800 rounded-2xl p-4 mb-6 border border-gray-600 shadow-md">
-                <h3 id="ui-crisis-current" class="text-gray-400 font-bold text-xs uppercase tracking-wider mb-1">🌍 Crisis Actual</h3>
+                <h3 id="ui-crisis-current" class="text-gray-400 font-bold text-xs uppercase tracking-wider mb-1">🌍 Current Crisis</h3>
                 <p class="text-gray-200 text-sm italic" id="role-scenario">...</p>
             </div>
 
             <div class="bg-gray-800 rounded-2xl p-5 mb-4 border-l-4 border-blue-500 shadow-md">
-                <h3 id="role-title-display" class="text-blue-400 font-bold text-sm uppercase tracking-wider mb-2">🛠️ Habilidad Vital</h3>
+                <h3 id="role-title-display" class="text-blue-400 font-bold text-sm uppercase tracking-wider mb-2">🛠️ Vital Skill</h3>
                 <p class="text-gray-200 text-sm" id="role-skill">...</p>
             </div>
 
             <div class="bg-gray-800 rounded-2xl p-5 mb-4 border-l-4 border-red-500 shadow-md">
-                <h3 id="ui-flaw" class="text-red-400 font-bold text-sm uppercase tracking-wider mb-2">⚠️ Defecto Fatal</h3>
+                <h3 id="ui-flaw" class="text-red-400 font-bold text-sm uppercase tracking-wider mb-2">⚠️ Fatal Flaw</h3>
                 <p class="text-gray-200 text-sm" id="role-flaw">...</p>
             </div>
 
             <div class="bg-gray-800 rounded-2xl p-5 mb-6 border-l-4 border-purple-500 shadow-md">
-                <h3 id="ui-secret" class="text-purple-400 font-bold text-sm uppercase tracking-wider mb-2">👁️ Secreto de Otro</h3>
+                <h3 id="ui-secret" class="text-purple-400 font-bold text-sm uppercase tracking-wider mb-2">👁️ Someone Else's Secret</h3>
                 <p class="text-gray-200 text-sm" id="role-secret">...</p>
             </div>
 
-            <!-- PANEL EXCLUSIVO DEL HOST -->
+            <!-- HOST EXCLUSIVE UI -->
             <div id="host-selection-ui" class="hidden mt-6 bg-gray-800 rounded-2xl p-5 border border-yellow-500 shadow-md">
-                <h3 class="text-yellow-400 font-bold text-sm uppercase tracking-wider mb-2">👑 Decisión del Anfitrión</h3>
-                <p class="text-gray-300 text-xs mb-3">Selecciona a los supervivientes (<span id="host-selection-count">0</span> / <span id="host-selection-max">0</span>)</p>
+                <h3 id="ui-host-decision" class="text-yellow-400 font-bold text-sm uppercase tracking-wider mb-2">👑 Host's Decision</h3>
+                <p class="text-gray-300 text-xs mb-3">Select the survivors (<span id="host-selection-count">0</span> / <span id="host-selection-max">0</span>)</p>
                 <form id="host-selection-form" class="space-y-3 mb-4">
-                    <!-- Checkboxes dinámicos -->
+                    <!-- Dynamic checkboxes -->
                 </form>
                 <button id="btn-submit-selection" onclick="submitHostSelection()" class="w-full bg-yellow-700 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg border border-yellow-500">
-                    DICTAR SENTENCIA
+                    SUBMIT VERDICT
                 </button>
             </div>
 
             <p id="text-waiting-voting" class="hidden text-center text-gray-400 text-xs mt-4">
-                ⏳ Debate. Discutid quién debe salvarse. El anfitrión tiene la decisión final.
+                ⏳ Debate. Discuss who should be saved. The host has the final say.
             </p>
         </div>
 
-        <!-- PANTALLA 4: ESPERANDO A LA IA -->
+        <!-- SCREEN 4: WAITING FOR AI -->
         <div id="screen-waiting" class="hidden fade-in bg-gray-900 rounded-3xl p-8 shadow-[0_0_20px_rgba(255,255,255,0.1)] border border-gray-700 text-center">
             <div class="inline-block p-4 rounded-full bg-gray-800 mb-4 animate-spin">
                 ⏳
             </div>
-            <h2 id="ui-waiting-title" class="text-xl font-bold text-gray-200 mb-2">El Anfitrión ha hablado...</h2>
-            <p id="ui-generating-text" class="text-yellow-400 font-bold mt-4 animate-pulse">¡La IA está evaluando la decisión!</p>
+            <h2 id="ui-waiting-title" class="text-xl font-bold text-gray-200 mb-2">The Host has spoken...</h2>
+            <p id="ui-generating-text" class="text-yellow-400 font-bold mt-4 animate-pulse">AI is evaluating the decision!</p>
         </div>
 
-        <!-- PANTALLA 5: VEREDICTO FINAL -->
+        <!-- SCREEN 5: FINAL VERDICT -->
         <div id="screen-verdict" class="hidden fade-in bg-gray-900 rounded-3xl p-6 shadow-[0_0_20px_rgba(234,179,8,0.3)] border border-yellow-600">
-            <h2 id="ui-verdict-title" class="text-3xl font-black text-center text-yellow-500 mb-6 uppercase tracking-widest">EL JUICIO FINAL</h2>
+            <h2 id="ui-verdict-title" class="text-3xl font-black text-center text-yellow-500 mb-6 uppercase tracking-widest">THE FINAL JUDGMENT</h2>
             
             <div class="bg-gray-800 rounded-2xl p-5 mb-4 border-l-4 border-red-500 shadow-md">
-                <h3 id="ui-voted-team" class="text-red-400 font-bold text-sm uppercase tracking-wider mb-2">🩸 Elección del Anfitrión</h3>
+                <h3 id="ui-voted-team" class="text-red-400 font-bold text-sm uppercase tracking-wider mb-2">🩸 The Host's Choice</h3>
                 <p class="text-white font-bold text-lg mb-3" id="verdict-host-survivors">...</p>
                 <p class="text-gray-300 text-sm leading-relaxed italic" id="verdict-player-outcome">...</p>
             </div>
 
             <div class="bg-gray-800 rounded-2xl p-5 mb-6 border-l-4 border-yellow-500 shadow-md">
-                <h3 id="ui-ideal-team" class="text-yellow-400 font-bold text-sm uppercase tracking-wider mb-2">🏆 La Solución de la IA</h3>
+                <h3 id="ui-ideal-team" class="text-yellow-400 font-bold text-sm uppercase tracking-wider mb-2">🏆 The AI's Solution</h3>
                 <p class="text-white font-bold text-lg mb-3" id="verdict-ai-survivors">...</p>
                 <p class="text-gray-300 text-sm leading-relaxed" id="verdict-ai-smackdown">...</p>
             </div>
             
-            <button id="ui-btn-replay" onclick="location.reload()" class="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all">
-                VOLVER A JUGAR
+            <button id="ui-btn-replay" onclick="playAgain()" class="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-all">
+                BACK TO LOBBY
             </button>
         </div>
 
     </div>
 
     <script>
-        // --- DICCIONARIO E IDIOMAS ---
+        // --- DICTIONARY & TRANSLATIONS ---
         const i18n = {
-            es: {
-                title: "☢️ EL BÚNKER", subtitle: "Edición Secretos y Traiciones", placeholderName: "Tu nombre...", placeholderRoom: "Código de Sala",
-                btnJoin: "ENTRAR AL BÚNKER", roomLabel: "Sala", playersLabel: "Jugadores activos", crisisLabel: "🌍 Selecciona la Crisis:",
-                btnStart: "¡EMPEZAR PARTIDA!", waitingHost: "Esperando a que el anfitrión inicie la partida...", statusConnected: "Conectado. Esperando jugadores...",
-                statusGenerating: "¡La IA está generando los roles! Prepárate...", confidential: "CONFIDENCIAL", crisisCurrent: "🌍 Crisis Actual",
-                flawLabel: "⚠️ Defecto Fatal", secretLabel: "👁️ Secreto de Otro", 
-                waitingTitle: "El Anfitrión ha hablado...", generatingText: "¡La IA está evaluando la decisión!", verdictTitle: "EL JUICIO FINAL",
-                votedTeam: "🩸 Elección del Anfitrión", idealTeam: "🏆 La Solución de la IA", btnReplay: "VOLVER A JUGAR"
-            },
             en: {
-                title: "☢️ THE BUNKER", subtitle: "Secrets & Betrayals Edition", placeholderName: "Your name...", placeholderRoom: "Room Code",
-                btnJoin: "ENTER THE BUNKER", roomLabel: "Room", playersLabel: "Active Players", crisisLabel: "🌍 Select the Crisis:",
-                btnStart: "START GAME!", waitingHost: "Waiting for the host to start the game...", statusConnected: "Connected. Waiting for players...",
-                statusGenerating: "AI is generating roles! Get ready...", confidential: "CONFIDENTIAL", crisisCurrent: "🌍 Current Crisis",
-                flawLabel: "⚠️ Fatal Flaw", secretLabel: "👁️ Someone Else's Secret",
+                title: "☢️ THE BUNKER", subtitle: "Secrets & Betrayals Edition", placeholderName: "Your name...", placeholderRoom: "Room Code", placeholderApiKey: "Your Gemini API Key...",
+                btnJoin: "JOIN EXISTING ROOM", btnCreate: "CREATE NEW ROOM", orCreate: "OR CREATE A NEW ONE", roomLabel: "Room", playersLabel: "Active Players", 
+                crisisLabel: "🌍 Select the Crisis:", btnStart: "START GAME!", btnLeave: "LEAVE ROOM", waitingHost: "Waiting for the host to start the game...", 
+                statusConnected: "Connected. Waiting for players...", statusGenerating: "AI is generating roles! Get ready...", confidential: "CONFIDENTIAL", 
+                crisisCurrent: "🌍 Current Crisis", flawLabel: "⚠️ Fatal Flaw", secretLabel: "👁️ Someone Else's Secret", hostDecision: "👑 Host's Decision", btnSubmit: "SUBMIT VERDICT", debateText: "⏳ Debate. Discuss who should be saved. The host has the final say.",
                 waitingTitle: "The Host has spoken...", generatingText: "AI is evaluating the decision!", verdictTitle: "THE FINAL JUDGMENT",
-                votedTeam: "🩸 The Host's Choice", idealTeam: "🏆 The AI's Solution", btnReplay: "PLAY AGAIN"
+                votedTeam: "🩸 The Host's Choice", idealTeam: "🏆 The AI's Solution", btnReplay: "BACK TO LOBBY"
+            },
+            es: {
+                title: "☢️ EL BÚNKER", subtitle: "Edición Secretos y Traiciones", placeholderName: "Tu nombre...", placeholderRoom: "Código de Sala", placeholderApiKey: "Tu API Key de Gemini...",
+                btnJoin: "UNIRSE A SALA", btnCreate: "CREAR SALA", orCreate: "O CREA UNA NUEVA", roomLabel: "Sala", playersLabel: "Jugadores activos", 
+                crisisLabel: "🌍 Selecciona la Crisis:", btnStart: "¡EMPEZAR PARTIDA!", btnLeave: "ABANDONAR SALA", waitingHost: "Esperando a que el anfitrión inicie la partida...", 
+                statusConnected: "Conectado. Esperando jugadores...", statusGenerating: "¡La IA está generando los roles! Prepárate...", confidential: "CONFIDENCIAL", 
+                crisisCurrent: "🌍 Crisis Actual", flawLabel: "⚠️ Defecto Fatal", secretLabel: "👁️ Secreto de Otro", hostDecision: "👑 Decisión del Anfitrión", btnSubmit: "DICTAR SENTENCIA", debateText: "⏳ Debate. Discutid quién debe salvarse. El anfitrión tiene la decisión final.",
+                waitingTitle: "El Anfitrión ha hablado...", generatingText: "¡La IA está evaluando la decisión!", verdictTitle: "EL JUICIO FINAL",
+                votedTeam: "🩸 Elección del Anfitrión", idealTeam: "🏆 La Solución de la IA", btnReplay: "VOLVER AL LOBBY"
             }
         };
 
         const scenariosDict = {
-            es: [
-                { value: "Ha ocurrido un evento apocalíptico masivo. El grupo ha encontrado un refugio seguro, pero el búnker es muy pequeño y no hay espacio para todos. Solo la mitad exacta del grupo podrá cruzar las puertas.", text: "🔥 Apocalipsis (Clásico)" },
-                { value: "Un invierno nuclear. El sistema de filtrado de aire está gravemente dañado y solo puede depurar el CO2 para mantener viva a la mitad del grupo; si entra una persona más, moriréis asfixiados.", text: "❄️ Invierno Nuclear" },
-                { value: "Una pandemia de un virus zombificador. Las reservas de raciones limitan la supervivencia a exactamente la mitad del grupo.", text: "🧟 Virus Zombificador" }
-            ],
             en: [
                 { value: "A massive apocalyptic event has occurred. The group found a safe shelter, but the bunker is too small. Only exactly half of the group will be able to enter.", text: "🔥 Apocalypse (Classic)" },
                 { value: "Nuclear winter. The air filtration system is damaged and can only purify CO2 to keep half the group alive; one more person and you all suffocate.", text: "❄️ Nuclear Winter" },
                 { value: "A zombie virus pandemic. Ration reserves limit survival to exactly half of the group.", text: "🧟 Zombie Virus" }
+            ],
+            es: [
+                { value: "Ha ocurrido un evento apocalíptico masivo. El grupo ha encontrado un refugio seguro, pero el búnker es muy pequeño y no hay espacio para todos. Solo la mitad exacta del grupo podrá cruzar las puertas.", text: "🔥 Apocalipsis (Clásico)" },
+                { value: "Un invierno nuclear. El sistema de filtrado de aire está gravemente dañado y solo puede depurar el CO2 para mantener viva a la mitad del grupo; si entra una persona más, moriréis asfixiados.", text: "❄️ Invierno Nuclear" },
+                { value: "Una pandemia de un virus zombificador. Las reservas de raciones limitan la supervivencia a exactamente la mitad del grupo.", text: "🧟 Virus Zombificador" }
             ]
         };
 
-        let currentLang = "es";
-        let maxHostSelection = 0; // Control de selecciones del anfitrión
+        let currentLang = "en";
+        let maxHostSelection = 0; // Host selection limits
         
         function changeLanguage() {
             currentLang = document.getElementById('lang-select').value;
@@ -176,16 +197,23 @@
             document.getElementById('ui-subtitle').innerText = t.subtitle;
             document.getElementById('playerName').placeholder = t.placeholderName;
             document.getElementById('roomCode').placeholder = t.placeholderRoom;
+            document.getElementById('apiKey').placeholder = t.placeholderApiKey;
             document.getElementById('ui-btn-join').innerText = t.btnJoin;
+            document.getElementById('ui-btn-create').innerText = t.btnCreate;
+            document.getElementById('ui-or-create').innerText = t.orCreate;
             document.getElementById('ui-room-label').innerText = t.roomLabel;
             document.getElementById('ui-players-label').innerText = t.playersLabel;
             document.getElementById('ui-crisis-label').innerText = t.crisisLabel;
             document.getElementById('btn-start').innerText = t.btnStart;
+            document.getElementById('ui-btn-leave').innerText = t.btnLeave;
             document.getElementById('lobbyStatus').innerText = t.statusConnected;
             document.getElementById('ui-confidential').innerText = t.confidential;
             document.getElementById('ui-crisis-current').innerText = t.crisisCurrent;
             document.getElementById('ui-flaw').innerText = t.flawLabel;
             document.getElementById('ui-secret').innerText = t.secretLabel;
+            document.getElementById('ui-host-decision').innerText = t.hostDecision;
+            document.getElementById('btn-submit-selection').innerText = t.btnSubmit;
+            document.getElementById('text-waiting-voting').innerText = t.debateText;
             
             document.getElementById('ui-waiting-title').innerText = t.waitingTitle;
             document.getElementById('ui-generating-text').innerText = t.generatingText;
@@ -208,19 +236,29 @@
             });
         }
 
+        // Initialize language
         changeLanguage();
 
-        // --- SISTEMA DE WEBSOCKET RESILIENTE ---
+        // --- RESILIENT WEBSOCKET SYSTEM ---
         let ws;
         let myName = localStorage.getItem('bunker_playerName') || "";
         let room = localStorage.getItem('bunker_roomCode') || "";
+        let isHostLocal = localStorage.getItem('bunker_isHost') === "true";
         let hostName = "";
         
         let reconnectAttempts = 0;
         const maxReconnectDelay = 10000;
 
-        if(myName) document.getElementById('playerName').value = myName;
-        if(room) document.getElementById('roomCode').value = room;
+        // Auto-reconnect if the user accidentally reloads the page
+        window.onload = () => {
+            if(myName && room) {
+                document.getElementById('displayRoom').innerText = room.toUpperCase();
+                document.getElementById('displayMyNameLobby').innerText = myName;
+                document.getElementById('displayMyNameRole').innerText = myName;
+                showScreen('screen-lobby');
+                connectWebSocket();
+            }
+        };
 
         function showScreen(screenId) {
             ['screen-login', 'screen-lobby', 'screen-role', 'screen-waiting', 'screen-verdict'].forEach(id => {
@@ -229,14 +267,20 @@
             document.getElementById(screenId).classList.remove('hidden');
         }
 
-        function connectWebSocket() {
+        function connectWebSocket(apiKey = "") {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const host = window.location.host; 
             
-            ws = new WebSocket(`${protocol}//${host}/ws/${myName}`);
+            // Send room, name, and (if creator) API key via URL
+            let wsUrl = `${protocol}//${host}/ws/${room}/${myName}`;
+            if (apiKey) {
+                wsUrl += `?api_key=${apiKey}`;
+            }
+            
+            ws = new WebSocket(wsUrl);
             
             ws.onopen = function() {
-                console.log("🟢 Conexión establecida");
+                console.log("🟢 Connection established");
                 reconnectAttempts = 0; 
                 document.getElementById('lobbyStatus').innerText = i18n[currentLang].statusConnected;
             };
@@ -249,7 +293,10 @@
                     document.getElementById('playersList').innerText = displayPlayers;
                     hostName = msg.host;
                     
-                    if(myName === hostName) {
+                    // Secure host controls based on backend OR local storage
+                    if(myName === hostName || isHostLocal) {
+                        isHostLocal = true;
+                        localStorage.setItem('bunker_isHost', "true");
                         document.getElementById('btn-start').classList.remove('hidden');
                         document.getElementById('host-controls').classList.remove('hidden');
                         document.getElementById('text-waiting-host').classList.add('hidden');
@@ -259,6 +306,7 @@
                         document.getElementById('text-waiting-host').classList.remove('hidden');
                         document.getElementById('text-waiting-host').innerText = i18n[currentLang].waitingHost;
                     }
+                    showScreen('screen-lobby'); // Just in case we come from game reset
                 }
                 
                 if(msg.type === "game_starting") {
@@ -274,19 +322,19 @@
                     
                     showScreen('screen-role');
 
-                    // Lógica para mostrar los controles del anfitrión
-                    if(myName === hostName && msg.all_players) {
+                    // Logic to display host controls
+                    if((myName === hostName || isHostLocal) && msg.all_players) {
                         document.getElementById('host-selection-ui').classList.remove('hidden');
                         document.getElementById('text-waiting-voting').classList.add('hidden');
                         
-                        // Calculamos la mitad exacta (redondeando hacia abajo)
+                        // Calculate exactly half the group (rounded down)
                         maxHostSelection = Math.floor(msg.all_players.length / 2);
                         document.getElementById('host-selection-max').innerText = maxHostSelection;
                         
                         const form = document.getElementById('host-selection-form');
                         form.innerHTML = '';
                         
-                        // Generamos los checkboxes
+                        // Generate checkboxes
                         msg.all_players.forEach(p => {
                             const div = document.createElement('div');
                             div.innerHTML = `
@@ -318,34 +366,72 @@
                 
                 if(msg.type === "error") {
                     alert("Error: " + msg.message);
+                    leaveRoom(); // Kick out if fatal error (e.g., room doesn't exist)
                 }
             };
 
             ws.onclose = function() {
-                console.warn("🔴 Conexión perdida. Iniciando reconexión automática...");
-                const delay = Math.min(maxReconnectDelay, (Math.pow(2, reconnectAttempts) - 1) * 1000);
-                setTimeout(() => {
-                    reconnectAttempts++;
-                    connectWebSocket();
-                }, delay);
+                console.warn("🔴 Connection lost. Starting auto-reconnect...");
+                if (localStorage.getItem('bunker_roomCode')) {
+                    const delay = Math.min(maxReconnectDelay, (Math.pow(2, reconnectAttempts) - 1) * 1000);
+                    setTimeout(() => {
+                        reconnectAttempts++;
+                        connectWebSocket();
+                    }, delay);
+                }
             };
+        }
+
+        function createRoom() {
+            myName = document.getElementById('playerName').value.trim();
+            room = document.getElementById('roomCode').value.trim().toLowerCase();
+            const apiKey = document.getElementById('apiKey').value.trim();
+            
+            if(!myName || !room || !apiKey) {
+                alert(currentLang === 'es' ? "Necesitas Nombre, Código de Sala y API Key para crear." : "You need a Name, Room Code, and API Key to create.");
+                return;
+            }
+
+            saveAndConnect(myName, room, true, apiKey);
         }
 
         function joinRoom() {
             myName = document.getElementById('playerName').value.trim();
-            room = document.getElementById('roomCode').value.trim();
+            room = document.getElementById('roomCode').value.trim().toLowerCase();
             
-            if(!myName || !room) return;
+            if(!myName || !room) {
+                alert(currentLang === 'es' ? "Necesitas Nombre y Código de Sala para unirte." : "You need a Name and Room Code to join.");
+                return;
+            }
 
-            localStorage.setItem('bunker_playerName', myName);
-            localStorage.setItem('bunker_roomCode', room);
+            saveAndConnect(myName, room, false, "");
+        }
 
-            document.getElementById('displayRoom').innerText = room.toUpperCase();
-            document.getElementById('displayMyNameLobby').innerText = myName;
-            document.getElementById('displayMyNameRole').innerText = myName;
+        function saveAndConnect(name, roomCode, isHost, apiKey) {
+            localStorage.setItem('bunker_playerName', name);
+            localStorage.setItem('bunker_roomCode', roomCode);
+            if(isHost) localStorage.setItem('bunker_isHost', "true");
+
+            document.getElementById('displayRoom').innerText = roomCode.toUpperCase();
+            document.getElementById('displayMyNameLobby').innerText = name;
+            document.getElementById('displayMyNameRole').innerText = name;
             
             showScreen('screen-lobby');
-            connectWebSocket();
+            connectWebSocket(apiKey);
+        }
+
+        function leaveRoom() {
+            localStorage.removeItem('bunker_playerName');
+            localStorage.removeItem('bunker_roomCode');
+            localStorage.removeItem('bunker_isHost');
+            if(ws) ws.close();
+            location.reload();
+        }
+
+        function playAgain() {
+            if(ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ action: "reset_game" }));
+            }
         }
 
         function startGame() {
@@ -359,7 +445,7 @@
             }
         }
 
-        // --- FUNCIONES DEL ANFITRIÓN ---
+        // --- HOST FUNCTIONS ---
         function updateHostSelectionCount(cb) {
             const checked = document.querySelectorAll('input[name="host_vote"]:checked');
             if (checked.length > maxHostSelection) {
@@ -380,7 +466,7 @@
             const survivors = Array.from(checked).map(cb => cb.value);
             
             if(ws && ws.readyState === WebSocket.OPEN) {
-                document.getElementById('btn-submit-selection').innerText = "⏳ Consultando a la IA...";
+                document.getElementById('btn-submit-selection').innerText = "⏳ Consulting AI...";
                 document.getElementById('btn-submit-selection').disabled = true;
                 
                 ws.send(JSON.stringify({

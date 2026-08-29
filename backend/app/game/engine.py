@@ -4,7 +4,10 @@ from typing import Dict, List, Optional, Any
 from app.game.state import Player
 
 class BunkerEngine:
-    def __init__(self):
+    def __init__(self, api_key: str = ""):
+        # Clave de Gemini única para esta sala
+        self.api_key: str = api_key
+        
         # Diccionario para mantener a los jugadores (conectados y desconectados)
         self.players: Dict[str, Player] = {}
         self.host: Optional[str] = None
@@ -31,28 +34,26 @@ class BunkerEngine:
         """Devuelve solo los nombres de los jugadores que tienen conexión activa."""
         return [name for name, p in self.players.items() if p.is_connected]
 
-    def connect_player(self, name: str) -> Player:
+    def connect_player(self, name: str, is_creator: bool = False) -> Player:
         """Registra un nuevo jugador o reconecta a uno existente."""
         if name in self.players:
             self.players[name].is_connected = True
         else:
             self.players[name] = Player(name=name)
             
-        # Si no hay host, el primero en entrar (o reconectarse) asume el rol
-        if not self.host:
+        # Asignamos el host al primero en entrar o si el frontend indica que es el creador
+        if not self.host or is_creator:
             self.host = name
             
         return self.players[name]
 
     def disconnect_player(self, name: str) -> None:
-        """Marca a un jugador como desconectado y reasigna el host si es necesario."""
+        """Marca a un jugador como desconectado."""
         if name in self.players:
             self.players[name].is_connected = False
             
-        # Si el host se cae, pasamos el control al siguiente jugador activo
-        if name == self.host:
-            active = self.active_player_names
-            self.host = active[0] if active else None
+        # NOTA: Ya no reasignamos el host. Si el anfitrión recarga la página, 
+        # su localStorage le permitirá recuperar el control.
 
     def start_game(self, scenario: str, language: str) -> None:
         """Configura los datos iniciales de la partida."""
@@ -172,6 +173,3 @@ class BunkerEngine:
             "tie_breaker_active": self.tie_breaker_active,
             "current_scenario": self.current_scenario
         }
-
-# Instancia global del juego
-game_engine = BunkerEngine()

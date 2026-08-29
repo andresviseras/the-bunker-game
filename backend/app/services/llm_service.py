@@ -1,18 +1,20 @@
 import json
 from google import genai
 from google.genai import types
-from app.core.config import settings
 
-# Instanciamos el cliente con la API key centralizada
-client = genai.Client(api_key=settings.GEMINI_API_KEY) if settings.GEMINI_API_KEY else None
+# ELIMINAMOS la importación global de settings y del cliente
+# from app.core.config import settings
+# client = genai.Client(api_key=settings.GEMINI_API_KEY) ...
 
-async def generate_and_distribute_roles(players: list[str], current_scenario: str, language: str) -> dict:
+async def generate_and_distribute_roles(api_key: str, players: list[str], current_scenario: str, language: str) -> dict:
     """
-    Se comunica con Gemini para generar los roles de forma asíncrona.
-    Retorna el diccionario con los datos o None si falla.
+    Se comunica con Gemini para generar los roles de forma asíncrona usando la API key de la sala.
     """
-    if not client:
+    if not api_key:
+        print("Error: No API key provided for role generation.")
         return None
+        
+    client = genai.Client(api_key=api_key)
 
     prompt = f"""
     LANGUAGE REQUIREMENT: You MUST generate all the output text entirely in this language: {language}.
@@ -85,12 +87,14 @@ async def generate_and_distribute_roles(players: list[str], current_scenario: st
         print(f"AI Error general: {e}")
         return None
 
-async def generate_final_verdict(game_language: str, current_scenario: str, player_roles: dict, ideal_survivors: list, chosen_survivors: list) -> dict:
+async def generate_final_verdict(api_key: str, game_language: str, current_scenario: str, player_roles: dict, ideal_survivors: list, chosen_survivors: list) -> dict:
     """
-    Genera el veredicto final comparando la decisión de los jugadores con la de la IA, con un tono analítico e impersonal.
+    Genera el veredicto final usando la API key de la sala.
     """
-    if not client:
+    if not api_key:
         return None
+        
+    client = genai.Client(api_key=api_key)
 
     prompt = f"""
     LANGUAGE REQUIREMENT: You MUST generate all output entirely in this language: {game_language}.

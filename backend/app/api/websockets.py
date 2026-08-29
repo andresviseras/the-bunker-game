@@ -1,114 +1,155 @@
 import json
+import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import Dict
+from typing import Dict, Set
 
-# Importamos las piezas que hemos construido
-from app.game.engine import game_engine
+from app.game.engine import BunkerEngine
 from app.services.llm_service import generate_and_distribute_roles, generate_final_verdict
 
 router = APIRouter()
 
-# Solo guarda las conexiones de red activas
-active_connections: Dict[str, WebSocket] = {}
+# DICCIONARIO PRINCIPAL: { "codigo_sala": BunkerEngine }
+rooms: Dict[str, BunkerEngine] = {}
 
-async def broadcast(message: dict) -> None:
-    """Envía un mensaje a todos los jugadores actualmente conectados."""
-    for connection in active_connections.values():
+# Mantiene un registro de las conexiones WebSocket activas por sala
+# Estructura: { "codigo_sala": { "nombre_jugador": WebSocket } }
+active_connections: Dict[str, Dict[str, WebSocket]] = {}
+
+async def broadcast_to_room(room_code: str, message: dict) -> None:
+    """Envía un mensaje a todos los jugadores conectados de una sala específica."""
+    if room_code in active_connections:
+        connections = active_connections[room_code].values()
+        tasks = []
+        for connection in connections:
+            tasks.append(asyncio.create_task(connection.send_json(message)))
+        
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+async def send_personal_to_room(room_code: str, player_name: str, message: dict) -> None:
+    """Envía un mensaje privado a un jugador de una sala."""
+    if room_code in active_connections and player_name in active_connections[room_code]:
         try:
-            await connection.send_json(message)
+            await active_connections[room_code][player_name].send_json(message)
         except Exception:
             pass
 
-async def send_personal(player_name: str, message: dict) -> None:
-    """Envía un mensaje privado a un único jugador."""
-    if player_name in active_connections:
-        try:
-            await active_connections[player_name].send_json(message)
-        except Exception:
-            pass
-
-@router.websocket("/ws/{player_name}")
-async def websocket_endpoint(websocket: WebSocket, player_name: str):
+@router.websocket("/ws/{room_code}/{player_name}")
+async def websocket_endpoint(websocket: WebSocket, room_code: str, player_name: str, api_key: str = ""):
+    room_code = room_code.lower()
+    
+    # 1. GESTIÓN DE SALAS
+    if room_code not in rooms:
+        # Si la sala no existe, solo permitimos crearla si hay una API KEY
+        if not api_key:
+            await websocket.accept()
+            await websocket.send_json({"type": "error", "message": "Sala no encontrada."})
+            await websocket.close()
+            return
+        # Creamos la sala con la clave proporcionada
+        rooms[room_code] = BunkerEngine(api_key=api_key)
+        active_connections[room_code] = {}
+    
+    # Referencia rápida al motor de esta sala
+    engine = rooms[room_code]
+    
     await websocket.accept()
-    active_connections[player_name] = websocket
+    active_connections[room_code][player_name] = websocket
     
-    # 1. Conectamos al jugador en el motor de juego
-    game_engine.connect_player(player_name)
+    # Conectamos al jugador. Si mandó api_key, lo tratamos como creador/host
+    is_creator = bool(api_key)
+    engine.connect_player(player_name, is_creator)
     
-    # 2. Lógica de reconexión (le enviamos la pantalla en la que estaba el juego)
-    if game_engine.game_phase == "playing" and player_name in game_engine.player_roles:
-        await send_personal(player_name, {
+    # 2. LOGICA DE RECONEXIÓN
+    if engine.game_phase == "playing" and player_name in engine.player_roles:
+        await send_personal_to_room(room_code, player_name, {
             "type": "role_reveal",
-            "scenario": game_engine.current_scenario,
-            "data": game_engine.player_roles[player_name],
-            "all_players": list(game_engine.players.keys())
+            "scenario": engine.current_scenario,
+            "data": engine.player_roles[player_name],
+            "all_players": list(engine.players.keys())
         })
-    elif game_engine.game_phase == "verdict" and game_engine.final_results:
-        await send_personal(player_name, {
+    elif engine.game_phase == "verdict" and engine.final_results:
+        await send_personal_to_room(room_code, player_name, {
             "type": "show_verdict", 
-            "data": game_engine.final_results
+            "data": engine.final_results
         })
 
-    # Avisamos a todos de que alguien entró/volvió
-    await broadcast({
+    # Avisamos del estado del lobby
+    await broadcast_to_room(room_code, {
         "type": "lobby_update", 
-        "players": list(game_engine.players.keys()),
-        "active_players": game_engine.active_player_names,
-        "host": game_engine.host
+        "players": list(engine.players.keys()),
+        "active_players": engine.active_player_names,
+        "host": engine.host
     })
     
     try:
         while True:
-            # 3. Esperamos mensajes del frontend
+            # 3. RECEPCIÓN DE MENSAJES
             data = await websocket.receive_text()
             msg = json.loads(data)
             action = msg.get("action")
             
-            # --- ACCIONES DEL HOST ---
-            if player_name == game_engine.host:
+            # Resetear Juego (Cualquiera puede, pero generalmente lo hará el host)
+            if action == "reset_game":
+                engine.game_phase = "lobby"
+                engine.player_roles = {}
+                engine.votes = {}
+                engine.final_results = None
+                engine.secret_verdict = None
+                
+                await broadcast_to_room(room_code, {
+                    "type": "lobby_update", 
+                    "players": list(engine.players.keys()),
+                    "active_players": engine.active_player_names,
+                    "host": engine.host
+                })
+                continue
+            
+            # --- ACCIONES EXCLUSIVAS DEL HOST ---
+            if player_name == engine.host:
                 if action == "start_game":
                     scenario = msg.get("scenario", "Default scenario")
                     language = msg.get("language", "en")
                     
-                    # Actualizamos estado en el motor
-                    game_engine.start_game(scenario, language)
-                    await broadcast({"type": "game_starting"})
+                    engine.start_game(scenario, language)
+                    await broadcast_to_room(room_code, {"type": "game_starting"})
                     
-                    # Llamamos a Gemini (asíncrono, sin bloquear)
+                    # Llamamos al LLM con la API key específica de la sala
                     ai_data = await generate_and_distribute_roles(
-                        game_engine.active_player_names, 
+                        engine.api_key,
+                        engine.active_player_names, 
                         scenario, 
                         language
                     )
                     
                     if ai_data:
-                        game_engine.set_ai_roles(ai_data.get("players", {}), ai_data.get("ai_verdict", {}))
-                        for p_name, role_data in game_engine.player_roles.items():
-                            await send_personal(p_name, {
+                        engine.set_ai_roles(ai_data.get("players", {}), ai_data.get("ai_verdict", {}))
+                        for p_name, role_data in engine.player_roles.items():
+                            await send_personal_to_room(room_code, p_name, {
                                 "type": "role_reveal",
                                 "scenario": scenario,
                                 "data": role_data,
-                                "all_players": list(game_engine.players.keys())
+                                "all_players": list(engine.players.keys())
                             })
                     else:
-                        await broadcast({"type": "error", "message": "Fallo en el Game Master de IA."})
+                        await broadcast_to_room(room_code, {"type": "error", "message": "Fallo en el Game Master de IA. Comprueba la API Key."})
 
                 elif action == "submit_host_selection":
                     chosen = msg.get("survivors", [])
                     
-                    await broadcast({
+                    await broadcast_to_room(room_code, {
                         "type": "info",
                         "message": "¡El anfitrión ha dictado sentencia! Evaluando variables..."
                     })
-                    await broadcast({"type": "generating_verdict"})
+                    await broadcast_to_room(room_code, {"type": "generating_verdict"})
                     
-                    # Recuperamos la solución ideal secreta que la IA pensó al principio
-                    ideal_team = game_engine.secret_verdict.get("ideal_survivors", [])
+                    ideal_team = engine.secret_verdict.get("ideal_survivors", [])
                     
                     final_data = await generate_final_verdict(
-                        game_engine.game_language,
-                        game_engine.current_scenario,
-                        game_engine.player_roles,
+                        engine.api_key,
+                        engine.game_language,
+                        engine.current_scenario,
+                        engine.player_roles,
                         ideal_team,
                         chosen
                     )
@@ -117,22 +158,30 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str):
                         final_data["player_survivors"] = chosen 
                         final_data["ai_ideal_survivors"] = ideal_team
                         
-                        game_engine.final_results = final_data
-                        game_engine.game_phase = "verdict"
-                        await broadcast({"type": "show_verdict", "data": final_data})
+                        engine.final_results = final_data
+                        engine.game_phase = "verdict"
+                        await broadcast_to_room(room_code, {"type": "show_verdict", "data": final_data})
                     else:
-                        await broadcast({"type": "error", "message": "Fallo al generar el veredicto final."})
+                        await broadcast_to_room(room_code, {"type": "error", "message": "Fallo al generar el veredicto final."})
 
     except WebSocketDisconnect:
-        # 4. Manejo de desconexiones
-        if player_name in active_connections:
-            del active_connections[player_name]
+        # 4. MANEJO DE DESCONEXIONES
+        if room_code in active_connections and player_name in active_connections[room_code]:
+            del active_connections[room_code][player_name]
             
-        game_engine.disconnect_player(player_name)
-        
-        await broadcast({
-            "type": "lobby_update", 
-            "players": list(game_engine.players.keys()),
-            "active_players": game_engine.active_player_names,
-            "host": game_engine.host
-        })
+        # Si la sala existe, desconectamos al jugador en el motor
+        if room_code in rooms:
+            rooms[room_code].disconnect_player(player_name)
+            
+            # Limpieza: Si no queda nadie conectado, borramos la sala entera
+            if not active_connections[room_code]:
+                del rooms[room_code]
+                del active_connections[room_code]
+            else:
+                # Avisar al resto de que alguien se ha ido
+                await broadcast_to_room(room_code, {
+                    "type": "lobby_update", 
+                    "players": list(rooms[room_code].players.keys()),
+                    "active_players": rooms[room_code].active_player_names,
+                    "host": rooms[room_code].host
+                })
